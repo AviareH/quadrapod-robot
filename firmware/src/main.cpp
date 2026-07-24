@@ -4,8 +4,8 @@
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-#define SERVOMIN 130  
-#define SERVOMAX 520 
+#define SERVOMIN 130
+#define SERVOMAX 520
 
 int FLFoot=0; //starts at 0, max at 180
 int FLKnee=1; //starts at 180, max at 15
@@ -44,13 +44,14 @@ void setup() {
   pwm.setPWMFreq(50); 
   delay(10);
   
-  neutral();
   delay(2000); 
 }
 
 void loop() {
-  setServoAngle(BLFoot, 0);
+  setServoAngle(BRFoot, 0);
   delay(1000);
-  setServoAngle(BLFoot, 159);
+  setServoAngle(BRFoot, 90);
+  delay(1000);
+  setServoAngle(BRFoot, 180);
   delay(1000);
 }

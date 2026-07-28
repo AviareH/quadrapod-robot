@@ -95,10 +95,5 @@ void setup() {
 }
 
 void loop() {
-  setServoAngle(BRFoot, 0);
-  delay(1000);
-  setServoAngle(BRFoot, 90);
-  delay(1000);
-  setServoAngle(BRFoot, 180);
-  delay(1000);
+  JointAngles FLangles = (100,100,100,true);
 }

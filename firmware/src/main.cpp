@@ -52,15 +52,24 @@ void setServoAngle(Servo &servo, float angle) {
   pwm.setPWM(servo.channel, 0, pulse);
 }
 
-JointAngles SolveIK(const Point& target){
+JointAngles SolveIK(const Point& target, bool mirrored){
   JointAngles angles;
+  float d = sqrt(target.x*target.x + target.y*target.y) - HipOffset;
+  float c = sqrt(d*d + target.z*target.z);
 
-  float d = sqrt(pow(target.x,2)+pow(target.y,2)) - HipOffset;
-  float c = sqrt(pow(d,2)+pow(target.z,2));
+  float rawTheta1 = atan2(target.x, target.y) * 180.0f / M_PI;
+  float rawTheta2 = (atan2(d, target.z) + acos(constrain((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c), -1.0f, 1.0f))) * 180.0f / M_PI;
+  float rawTheta3 = acos(constrain((KneeLink*KneeLink + FootLink*FootLink - c*c) / (2.0f*KneeLink*FootLink), -1.0f, 1.0f)) * 180.0f / M_PI;
 
-  angles.theta1 = (atan2(target.x,target.y))*180/M_PI;
-  angles.theta2 = (atan2(d,target.z)+acos((pow(KneeLink,2)+pow(c,2)-pow(FootLink,2))/(2.0*KneeLink*c)))*180/M_PI;
-  angles.theta3 = (acos((pow(KneeLink,2)-pow(c,2)+pow(FootLink,2))/(2.0*KneeLink*FootLink)))*180/M_PI;
+  if (mirrored) {
+    angles.theta1 = rawTheta1;
+    angles.theta2 = rawTheta2;
+    angles.theta3 = rawTheta3;
+  } else {
+    angles.theta1 = 180.0f - rawTheta1;
+    angles.theta2 = 180.0f - rawTheta2;
+    angles.theta3 = 180.0f - rawTheta3;
+  }
 
   return angles;
 }

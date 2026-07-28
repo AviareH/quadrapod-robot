@@ -17,6 +17,7 @@ struct Servo {
   float angle;
 };
 
+
 struct Point {
   float x;
   float y;
@@ -54,6 +55,7 @@ void setServoAngle(Servo &servo, float angle) {
 
 JointAngles SolveIK(const Point& target, bool mirrored){
   JointAngles angles;
+
   float d = sqrt(target.x*target.x + target.y*target.y) - HipOffset;
   float c = sqrt(d*d + target.z*target.z);
 

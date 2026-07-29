@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <ESP32Servo.h> 
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
 
@@ -72,12 +71,13 @@ void setServoAngle(Servo &servo, float angle) {
 JointAngles SolveIK(const Point& target, bool mirrored){
   JointAngles angles;
 
-  float d = sqrt(target.x*target.x + target.y*target.y) - HipOffset;
-  float c = sqrt(d*d + target.z*target.z);
+  float d = sqrt(target.x*target.x + target.y*target.y);
+  float r = d - HipOffset;
+  float c = sqrt(r*r + target.z*target.z);
 
-  float rawTheta1 = atan2(target.y, target.x) * 180.0f / M_PI;
-  float rawTheta2 = (atan2(d, target.z*-1.0f) + acos(constrain((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c), -1.0f, 1.0f))) * 180.0f / M_PI;
-  float rawTheta3 = acos(constrain((KneeLink*KneeLink + FootLink*FootLink - c*c) / (2.0f*KneeLink*FootLink), -1.0f, 1.0f)) * 180.0f / M_PI;
+  float rawTheta1 = atan2(target.x, target.y) * 180.0f / M_PI;
+  float rawTheta2 = (atan2(r, -target.z) + acos((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c))) * 180.0f / M_PI;
+  float rawTheta3 = acos((KneeLink*KneeLink + FootLink*FootLink - c*c) / (2.0f*KneeLink*FootLink)) * 180.0f / M_PI;
 
   if (mirrored) {
     angles.theta1 = rawTheta1;
@@ -183,4 +183,4 @@ void loop() {
   setServoAngle(*leg->hip,  angles.theta1);
   setServoAngle(*leg->knee, angles.theta2);
   setServoAngle(*leg->foot, angles.theta3);
-}
+} 

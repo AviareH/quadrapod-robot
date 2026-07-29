@@ -71,36 +71,28 @@ void setServoAngle(Servo &servo, float angle) {
 JointAngles SolveIK(const Point& target, bool mirrored){
   JointAngles angles;
 
-  float d = sqrt(target.x*target.x + target.y*target.y);
-  float r = d - HipOffset;
-  float c = sqrt(r*r + target.z*target.z);
+  float c = sqrt(target.y*target.y + target.z*target.z);
 
-  float rawTheta1 = atan2(target.x, target.y) * 180.0f / M_PI;
-  float rawTheta2 = (atan2(r, -target.z) + acos((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c))) * 180.0f / M_PI;
+  //float rawTheta1 = atan2(target.x, target.y) * 180.0f / M_PI;
+  float rawTheta2 = (atan2(target.y, -target.z) + acos((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c))) * 180.0f / M_PI;
   float rawTheta3 = acos((KneeLink*KneeLink + FootLink*FootLink - c*c) / (2.0f*KneeLink*FootLink)) * 180.0f / M_PI;
 
-  if (mirrored) {
-    angles.theta1 = rawTheta1;
-    angles.theta2 = rawTheta2;
-    angles.theta3 = rawTheta3;
-  } else {
-    angles.theta1 = 180.0f - rawTheta1;
-    angles.theta2 = 180.0f - rawTheta2;
-    angles.theta3 = 180.0f - rawTheta3;
-  }
-
-  if (angles.theta1 < 0.0f || angles.theta1 > 180.0f) {
-    Serial.printf("WARNING: theta1 out of range (%.1f), clamped\n", angles.theta1);
-  }
-  angles.theta1 = constrain(angles.theta1, 0.0f, 180.0f);
+  //if (angles.theta1 < 0.0f || angles.theta1 > 180.0f) {
+    //Serial.printf("WARNING: theta1 out of range (%.1f), clamped\n", angles.theta1);
+  //}
+  angles.theta1 = 0.0f;
   if (angles.theta2 < 0.0f || angles.theta2 > 180.0f) {
     Serial.printf("WARNING: theta2 out of range (%.1f), clamped\n", angles.theta2);
   }
-  angles.theta2 = constrain(angles.theta2, 0.0f, 180.0f);
+  angles.theta2 = 180.0f - constrain(angles.theta2, 0.0f, 180.0f);
   if (angles.theta3 < 0.0f || angles.theta3 > 180.0f) {
     Serial.printf("WARNING: theta3 out of range (%.1f), clamped\n", angles.theta3);
   }
   angles.theta3 = constrain(angles.theta3, 0.0f, 180.0f);
+
+  Serial.println(angles.theta1);
+  Serial.println(angles.theta2);
+  Serial.println(angles.theta3);
 
   return angles;
 }
@@ -180,7 +172,7 @@ void loop() {
     leg->name, target.x, target.y, target.z,
     angles.theta1, angles.theta2, angles.theta3);
 
-  setServoAngle(*leg->hip,  angles.theta1);
+  setServoAngle(FLHip,0);
   setServoAngle(*leg->knee, angles.theta2);
   setServoAngle(*leg->foot, angles.theta3);
 } 

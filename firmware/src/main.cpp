@@ -77,18 +77,9 @@ JointAngles SolveIK(const Point& target, bool mirrored){
   float rawTheta2 = (atan2(target.y, -target.z) + acos((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c))) * 180.0f / M_PI;
   float rawTheta3 = acos((KneeLink*KneeLink + FootLink*FootLink - c*c) / (2.0f*KneeLink*FootLink)) * 180.0f / M_PI;
 
-  //if (angles.theta1 < 0.0f || angles.theta1 > 180.0f) {
-    //Serial.printf("WARNING: theta1 out of range (%.1f), clamped\n", angles.theta1);
-  //}
   angles.theta1 = 0.0f;
-  if (angles.theta2 < 0.0f || angles.theta2 > 180.0f) {
-    Serial.printf("WARNING: theta2 out of range (%.1f), clamped\n", angles.theta2);
-  }
-  angles.theta2 = 180.0f - constrain(angles.theta2, 0.0f, 180.0f);
-  if (angles.theta3 < 0.0f || angles.theta3 > 180.0f) {
-    Serial.printf("WARNING: theta3 out of range (%.1f), clamped\n", angles.theta3);
-  }
-  angles.theta3 = constrain(angles.theta3, 0.0f, 180.0f);
+  angles.theta2 = rawTheta2;
+  angles.theta3 = 180.0f - rawTheta3;
 
   Serial.println(angles.theta1);
   Serial.println(angles.theta2);
@@ -172,7 +163,6 @@ void loop() {
     leg->name, target.x, target.y, target.z,
     angles.theta1, angles.theta2, angles.theta3);
 
-  setServoAngle(FLHip,0);
   setServoAngle(*leg->knee, angles.theta2);
   setServoAngle(*leg->foot, angles.theta3);
 } 

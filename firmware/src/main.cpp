@@ -76,7 +76,7 @@ JointAngles SolveIK(const Point& target, bool mirrored){
   float c = sqrt(r*r + target.z*target.z);
 
   float rawTheta1 = atan2(target.x, target.y) * 180.0f / M_PI;
-  float rawTheta2 = (atan2(r, -target.z) - acos((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c))) * 180.0f / M_PI;
+  float rawTheta2 = (atan2(r, -target.z) + acos((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c))) * 180.0f / M_PI;
   float rawTheta3 = acos((KneeLink*KneeLink + FootLink*FootLink - c*c) / (2.0f*KneeLink*FootLink)) * 180.0f / M_PI;
 
   if (mirrored) {
@@ -88,10 +88,6 @@ JointAngles SolveIK(const Point& target, bool mirrored){
     angles.theta2 = rawTheta2;
     angles.theta3 = 180.0f - rawTheta3;
   }
-
-  Serial.println(angles.theta1);
-  Serial.println(angles.theta2);
-  Serial.println(angles.theta3);
 
   return angles;
 }

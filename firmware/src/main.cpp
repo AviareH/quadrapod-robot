@@ -53,7 +53,7 @@ Servo BLHip  = {14, 180};
 struct Leg {
   const char* name;
   Servo* hip;
-  Servo* knee;
+  Servo* knee; 
   Servo* foot;
   bool mirrored;
 };
@@ -89,17 +89,17 @@ JointAngles SolveIK(const Point& target, bool mirrored){
   }
 
   //straight hip flexion to target distance
-  float legSpan = sqrt(planarReach*planarReach + target.z*target.z);
+  float LegSpan = sqrt(planarReach*planarReach + target.z*target.z);
 
-  if (legSpan > reachMax || legSpan < reachMin) {
-    Serial.printf("UNREACHABLE: c=%.1f outside [%.1f, %.1f]\n", legSpan, reachMin, reachMax);
+  if (LegSpan > reachMax || LegSpan < reachMin) {
+    Serial.printf("UNREACHABLE: c=%.1f outside [%.1f, %.1f]\n", LegSpan, reachMin, reachMax);
     angles.valid = false;
     return angles;
   }
 
   float rawTheta1 = atan2(target.x, target.y) * 180.0f / M_PI;
-  float rawTheta2 = (atan2(planarReach, -target.z) + acos(constrain((KneeLink*KneeLink + legSpan*legSpan - FootLink*FootLink) / (2.0f*KneeLink*legSpan), -1.0f, 1.0f))) * 180.0f / M_PI;
-  float rawTheta3 = acos(constrain((KneeLink*KneeLink + FootLink*FootLink - legSpan*legSpan) / (2.0f*KneeLink*FootLink), -1.0f, 1.0f)) * 180.0f / M_PI;
+  float rawTheta2 = (atan2(planarReach, -target.z) + acos(constrain((KneeLink*KneeLink + LegSpan*LegSpan - FootLink*FootLink) / (2.0f*KneeLink*LegSpan), -1.0f, 1.0f))) * 180.0f / M_PI;
+  float rawTheta3 = acos(constrain((KneeLink*KneeLink + FootLink*FootLink - LegSpan*LegSpan) / (2.0f*KneeLink*FootLink), -1.0f, 1.0f)) * 180.0f / M_PI;
 
   if (mirrored) {
     angles.theta1 = 180.0f - rawTheta1;

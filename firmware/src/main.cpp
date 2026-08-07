@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <ESP32Servo.h> 
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
 
@@ -11,12 +10,13 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 const float KneeLink = 61.5;
 const float FootLink = 75.5;
 const float HipOffset = 31.5;
+const float reachMax = KneeLink + FootLink;
+const float reachMin = fabs(KneeLink - FootLink);
 
 struct Servo {
   uint8_t channel;
   float angle;
 };
-
 
 struct Point {
   float x;
@@ -28,6 +28,7 @@ struct JointAngles {
   float theta1; // Hip
   float theta2; // Knee
   float theta3; // Foot
+  bool valid; // Reachable?
 };
 
 Servo FLFoot = {0, 0};
@@ -46,6 +47,23 @@ Servo BLFoot = {12, 0};
 Servo BLKnee = {13, 180};
 Servo BLHip  = {14, 180};
 
+// --- LEG SELECTOR TABLE ---
+// Groups each leg's three servos with its mirrored flag, so the
+// interactive loop knows which physical servos to drive for a given target.
+struct Leg {
+  const char* name;
+  Servo* hip;
+  Servo* knee; 
+  Servo* foot;
+  bool mirrored;
+};
+
+Leg legs[4] = {
+  {"FL", &FLHip, &FLKnee, &FLFoot, false},
+  {"FR", &FRHip, &FRKnee, &FRFoot, true},
+  {"BR", &BRHip, &BRKnee, &BRFoot, false},
+  {"BL", &BLHip, &BLKnee, &BLFoot, true},
+};
 
 void setServoAngle(Servo &servo, float angle) {
   servo.angle = constrain(angle, 0.0f, 180.0f);
@@ -56,26 +74,54 @@ void setServoAngle(Servo &servo, float angle) {
 JointAngles SolveIK(const Point& target, bool mirrored){
   JointAngles angles;
 
-  float d = sqrt(target.x*target.x + target.y*target.y) - HipOffset;
-  float c = sqrt(d*d + target.z*target.z);
+  angles.valid=true;
+  angles.theta1 = angles.theta2 = angles.theta3 = 0.0f;
+
+  //hip abduct (origin) to target distance
+  float horizontalDist  = sqrt(target.x*target.x+target.y*target.y);
+  //hip flexion to target distance
+  float planarReach  = horizontalDist-HipOffset;
+
+  if (planarReach < 0.0f) {
+    Serial.printf("UNREACHABLE: d=%.1f is inside HipOffset\n", horizontalDist);
+    angles.valid = false;
+    return angles;
+  }
+
+  //straight hip flexion to target distance
+  float LegSpan = sqrt(planarReach*planarReach + target.z*target.z);
+
+  if (LegSpan > reachMax || LegSpan < reachMin) {
+    Serial.printf("UNREACHABLE: c=%.1f outside [%.1f, %.1f]\n", LegSpan, reachMin, reachMax);
+    angles.valid = false;
+    return angles;
+  }
 
   float rawTheta1 = atan2(target.x, target.y) * 180.0f / M_PI;
-  float rawTheta2 = (atan2(d, target.z) + acos(constrain((KneeLink*KneeLink + c*c - FootLink*FootLink) / (2.0f*KneeLink*c), -1.0f, 1.0f))) * 180.0f / M_PI;
-  float rawTheta3 = acos(constrain((KneeLink*KneeLink + FootLink*FootLink - c*c) / (2.0f*KneeLink*FootLink), -1.0f, 1.0f)) * 180.0f / M_PI;
+  float rawTheta2 = (atan2(planarReach, -target.z) + acos(constrain((KneeLink*KneeLink + LegSpan*LegSpan - FootLink*FootLink) / (2.0f*KneeLink*LegSpan), -1.0f, 1.0f))) * 180.0f / M_PI;
+  float rawTheta3 = acos(constrain((KneeLink*KneeLink + FootLink*FootLink - LegSpan*LegSpan) / (2.0f*KneeLink*FootLink), -1.0f, 1.0f)) * 180.0f / M_PI;
 
   if (mirrored) {
-    angles.theta1 = rawTheta1;
-    angles.theta2 = rawTheta2;
-    angles.theta3 = rawTheta3;
-  } else {
     angles.theta1 = 180.0f - rawTheta1;
     angles.theta2 = 180.0f - rawTheta2;
+    angles.theta3 = rawTheta3;
+  } else {
+    angles.theta1 = rawTheta1;
+    angles.theta2 = rawTheta2;
     angles.theta3 = 180.0f - rawTheta3;
+  }
+
+  // out of range = dont move 
+  if (angles.theta1 < 0.0f || angles.theta1 > 180.0f ||
+      angles.theta2 < 0.0f || angles.theta2 > 180.0f ||
+      angles.theta3 < 0.0f || angles.theta3 > 180.0f) {
+    Serial.printf("OUT OF SERVO RANGE: hip %.1f  knee %.1f  foot %.1f\n", angles.theta1, angles.theta2, angles.theta3);
+    angles.valid = false;
+    return angles;
   }
 
   return angles;
 }
-
 
 void neutral(){
   setServoAngle(FLFoot, 0);
@@ -86,14 +132,74 @@ void neutral(){
   setServoAngle(FRHip, 180);
 }
 
+// --- SERIAL INPUT HELPER ---
+// Blocks until a full line is received, echoing characters back as typed.
+String readSerialLine() {
+  String input = "";
+  while (true) {
+    if (Serial.available()) {
+      char c = Serial.read();
+      if (c == '\n' || c == '\r') {
+        if (input.length() > 0) return input;
+      } else {
+        input += c;
+        Serial.print(c);
+      }
+    }
+  }
+}
+
+// Finds a leg by name (case-insensitive). Returns nullptr if not found.
+Leg* findLeg(const String& name) {
+  for (int i = 0; i < 4; i++) {
+    if (name.equalsIgnoreCase(legs[i].name)) {
+      return &legs[i];
+    }
+  }
+  return nullptr;
+}
+
 void setup() {
   Serial.begin(115200);
   pwm.begin();
   pwm.setPWMFreq(50); 
   delay(10);
-  
+
+  Serial.println(F("\n=== LEG IK TEST TOOL ==="));
+  Serial.println(F("Enter a leg (FL, FR, BR, BL) and a target X Y Z to solve IK and move that leg."));
 }
 
 void loop() {
-  JointAngles FLangles = (100,100,100,true);
-}
+  Serial.print(F("\nLeg (FL/FR/BR/BL): "));
+  String legInput = readSerialLine();
+  Serial.println();
+
+  Leg* leg = findLeg(legInput);
+  if (leg == nullptr) {
+    Serial.println(F("Unknown leg. Try again."));
+    return;
+  }
+
+  Serial.print(F("Target X Y Z (e.g. 100 100 100): "));
+  String pointInput = readSerialLine();
+  Serial.println();
+
+  Point target;
+  int parsed = sscanf(pointInput.c_str(), "%f %f %f", &target.x, &target.y, &target.z);
+
+  if (parsed != 3) {
+    Serial.println(F("Could not parse three numbers. Try again."));
+    return;
+  }
+
+  JointAngles angles = SolveIK(target, leg->mirrored);
+
+  Serial.printf("[%s] target (%.1f, %.1f, %.1f) -> hip %.1f  knee %.1f  foot %.1f\n",
+    leg->name, target.x, target.y, target.z,
+    angles.theta1, angles.theta2, angles.theta3);
+
+  
+  setServoAngle(*leg->hip, angles.theta1);
+  setServoAngle(*leg->knee, angles.theta2);
+  setServoAngle(*leg->foot, angles.theta3);
+} 

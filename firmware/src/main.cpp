@@ -37,14 +37,13 @@ struct Leg {
   Servo* knee; 
   Servo* foot;
   bool mirrored;
-  bool rear;
 };
 
 Leg legs[4] = {
-  {"FL", &FLHip, &FLKnee, &FLFoot, false, false},
-  {"FR", &FRHip, &FRKnee, &FRFoot, true, false},
-  {"BR", &BRHip, &BRKnee, &BRFoot, false, true},
-  {"BL", &BLHip, &BLKnee, &BLFoot, true, true},
+  {"FL", &FLHip, &FLKnee, &FLFoot, false},
+  {"FR", &FRHip, &FRKnee, &FRFoot, true},
+  {"BR", &BRHip, &BRKnee, &BRFoot, false},
+  {"BL", &BLHip, &BLKnee, &BLFoot, true},
 };
 
 void setServoAngle(Servo &servo, float angle) {
@@ -73,7 +72,6 @@ void neutral(){
 
 bool MoveLeg(Leg& leg, const Point& bodyTarget) {
   Point local = bodyTarget;
-  if (leg.rear) local.y = -local.y;
 
   JointAngles angles = SolveIK(local, leg.mirrored);
 
@@ -97,15 +95,16 @@ void setup() {
   pwm.begin();
   pwm.setPWMFreq(50); 
   delay(10);
+  neutral();
 }
 
 void loop() {
-  Point stance = {50.0f, 0.0f, -100.0f};
+  Point stance = {57.0f, 43.0f, -58.0f};
 
-  for (int i = 0; i < 4; i++) {
-    MoveLeg(legs[i], stance);
-    delay(500);
-  }
+  // for (int i = 0; i < 4; i++){
+  //   MoveLeg(legs[i],stance);
+  //   delay(500);
+  // }
 
-  delay(3000);
+  // delay(3000);
 } 

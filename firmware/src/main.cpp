@@ -26,7 +26,7 @@ Servo BRKnee = {9, 180, -9};
 Servo BRHip  = {10, 0, 5};
 
 Servo BLFoot = {12, 180, -1};
-Servo BLKnee = {13, 0, 4};
+Servo BLKnee = {13, 0, 12};
 Servo BLHip  = {14, 180, -10};
 
 struct Leg {
@@ -71,7 +71,7 @@ void neutral(){
 
 bool MoveLeg(Leg& leg, const Point& bodyTarget) {
   Point local = bodyTarget;
-  if (leg.rear) local.y = 153.0f - local.y;
+  if (leg.rear) local.y = 2.0f * 43.0f - local.y;
 
   JointAngles angles = SolveIK(local, leg.mirrored);
 
@@ -130,7 +130,7 @@ void pushAll() {
     float t = (float)s / PUSH_SUB;
     for (int l = 0; l < 4; l++)
       MoveLeg(legs[l], {X_OUT, y0[l] - PUSH * t, Z_DOWN});
-    delay(75);
+    delay(30);
   }
   for (int l = 0; l < 4; l++) legY[l] -= PUSH;
 }
@@ -147,10 +147,7 @@ void loop() {
   swingLeg(0);   // reaches 
   pushAll();     // advances
   swingLeg(2);   // rebalances
-  delay(500);
-
   swingLeg(1);   // reaches
   pushAll();     // advances
   swingLeg(3);   // rebalances
-  delay(500);
 }

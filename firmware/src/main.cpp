@@ -10,23 +10,6 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 const Point staticStance = {58.0f, 43.0f, -58.0f};
 const int STEPS = 14;
 
-Point stepList[STEPS] = {
-  {58.0f,  43.0f, -58.0f},
-  {58.0f,  48.0f, -48.5f},
-  {58.0f,  55.5f, -42.4f},
-  {58.0f,  63.0f, -38.9f},
-  {58.0f,  76.5f, -36.7f},
-  {58.0f,  90.0f, -38.9f},
-  {58.0f,  97.5f, -42.4f},
-  {58.0f, 105.0f, -48.5f},
-  {58.0f, 110.0f, -58.0f},
-  {58.0f,  97.0f, -58.0f},
-  {58.0f,  84.0f, -58.0f},
-  {58.0f,  71.0f, -58.0f},
-  {58.0f,  57.0f, -58.0f},
-  {58.0f,  43.0f, -58.0f}
-};
-
 struct Servo {
   uint8_t channel;
   float angle;
@@ -171,13 +154,13 @@ void pushAll() {
 }
 
 void loop() {
-  swingLeg(0);   // FL reaches out
-  pushAll();     // body advances
-  swingLeg(2);   // BR rebalances
+  swingLeg(0);   // reaches 
+  pushAll();     // advances
+  swingLeg(2);   // rebalances
   delay(500);
 
-  swingLeg(1);   // FR reaches out
-  pushAll();     // body advances
-  swingLeg(3);   // BL rebalances
+  swingLeg(1);   // reaches
+  pushAll();     // advances
+  swingLeg(3);   // rebalances
   delay(500);
 }

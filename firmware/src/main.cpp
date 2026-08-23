@@ -7,9 +7,6 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define SERVOMIN 130
 #define SERVOMAX 520
 
-const Point staticStance = {58.0f, 43.0f, -58.0f};
-const int STEPS = 14;
-
 struct Servo {
   uint8_t channel;
   float angle;
@@ -29,8 +26,8 @@ Servo BRKnee = {9, 180, -9};
 Servo BRHip  = {10, 0, 5};
 
 Servo BLFoot = {12, 180, -1};
-Servo BLKnee = {13, 0, 6};
-Servo BLHip  = {14, 180, -6};
+Servo BLKnee = {13, 0, 4};
+Servo BLHip  = {14, 180, -10};
 
 struct Leg {
   const char* name;
@@ -74,7 +71,7 @@ void neutral(){
 
 bool MoveLeg(Leg& leg, const Point& bodyTarget) {
   Point local = bodyTarget;
-  if (leg.rear) local.y = 2.0f * 43.0f - local.y;
+  if (leg.rear) local.y = 153.0f - local.y;
 
   JointAngles angles = SolveIK(local, leg.mirrored);
 
@@ -83,35 +80,18 @@ bool MoveLeg(Leg& leg, const Point& bodyTarget) {
     return false;
   }
 
-  Serial.printf("[%s] target (%.1f, %.1f, %.1f) -> hip %.1f  knee %.1f  foot %.1f\n",
-    leg.name, bodyTarget.x, bodyTarget.y, bodyTarget.z,
-    angles.theta1, angles.theta2, angles.theta3);
-
   setServoAngle(*leg.hip,  angles.theta1);
   setServoAngle(*leg.knee, angles.theta2);
   setServoAngle(*leg.foot, angles.theta3);
   return true;
 }
 
-void setup() {
-  Serial.begin(115200);
-  pwm.begin();
-  pwm.setPWMFreq(50); 
-  delay(10);
-  neutral();
-  delay(3000);
-  for (int i = 0; i < 4; i++){
-    MoveLeg(legs[i],staticStance);
-    delay(500);
-  }
-}
-
-const float X_OUT   = 58.0f;
+const float X_OUT = 58.0f;
 const float Y_FRONT = 110.0f;
-const float Y_BACK  = 43.0f;
-const float Z_DOWN  = -58.0f;
-const float LIFT    = 21.0f;
-const float PUSH    = (Y_FRONT - Y_BACK) / 2.0f;   // 33.5
+const float Y_BACK = 43.0f;
+const float Z_DOWN = -58.0f;
+const float LIFT = 21.0f;
+const float PUSH = (Y_FRONT - Y_BACK) / 2.0f;   // 33.5
 
 const int SWING_SUB = 8;
 const int PUSH_SUB  = 6;
@@ -123,8 +103,10 @@ void initGait() {
   legY[1] = Y_BACK + PUSH;   // FR
   legY[2] = Y_BACK + PUSH;   // BR
   legY[3] = Y_FRONT;         // BL
-  for (int l = 0; l < 4; l++)
+  for (int l = 0; l < 4; l++) {
     MoveLeg(legs[l], {X_OUT, legY[l], Z_DOWN});
+    delay(300);
+  }
 }
 
 void swingLeg(int l) {
@@ -151,6 +133,14 @@ void pushAll() {
     delay(75);
   }
   for (int l = 0; l < 4; l++) legY[l] -= PUSH;
+}
+
+void setup() {
+  pwm.begin();
+  pwm.setPWMFreq(50);
+  delay(10);
+  initGait();
+  delay(1000);
 }
 
 void loop() {

@@ -1,4 +1,9 @@
 # **Work In Progress**
+
+## Baby's first steps:
+
+https://github.com/user-attachments/assets/642e6b27-5f31-4c67-89b4-a7933e77953b
+
 ## Some pictures as of right now:
 
 <img width="4032" height="3024" alt="IMG_5946" src="https://github.com/user-attachments/assets/2eebb7e4-2862-4fd7-88ba-6c79c49998cc" />

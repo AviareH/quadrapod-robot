@@ -7,6 +7,18 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 #define SERVOMIN 130
 #define SERVOMAX 520
 
+const float X_OUT     = 58.0f;
+const float Y_FRONT   = 120.0f;
+const float Y_BACK    = 43.0f;
+const float Z_DOWN    = -58.0f;
+const float LIFT      = 21.0f;
+const float STEP_BACK = (Y_FRONT - Y_BACK) / 3.0f;
+
+const int SUBSTEPS = 9;
+const int ORDER[4] = {0, 2, 1, 3};   // FL, BR, FR, BL
+
+float legY[4];
+
 struct Servo {
   uint8_t channel;
   float angle;
@@ -86,53 +98,13 @@ bool MoveLeg(Leg& leg, const Point& bodyTarget) {
   return true;
 }
 
-const float X_OUT = 58.0f;
-const float Y_FRONT = 110.0f;
-const float Y_BACK = 43.0f;
-const float Z_DOWN = -58.0f;
-const float LIFT = 21.0f;
-const float PUSH = (Y_FRONT - Y_BACK) / 2.0f;   // 33.5
-
-const int SWING_SUB = 8;
-const int PUSH_SUB  = 6;
-
-float legY[4];
-
 void initGait() {
-  legY[0] = Y_BACK;          // FL
-  legY[1] = Y_BACK + PUSH;   // FR
-  legY[2] = Y_BACK + PUSH;   // BR
-  legY[3] = Y_FRONT;         // BL
+  for (int i = 0; i < 4; i++)
+    legY[ORDER[i]] = Y_BACK + i * STEP_BACK;
   for (int l = 0; l < 4; l++) {
     MoveLeg(legs[l], {X_OUT, legY[l], Z_DOWN});
     delay(300);
   }
-}
-
-void swingLeg(int l) {
-  float y0 = legY[l];
-  for (int s = 1; s <= SWING_SUB; s++) {
-    float t = (float)s / SWING_SUB;
-    Point p;
-    p.x = X_OUT;
-    p.y = y0 + (Y_FRONT - y0) * t;
-    p.z = Z_DOWN + LIFT * sinf(PI * t);
-    MoveLeg(legs[l], p);
-    delay(75);
-  }
-  legY[l] = Y_FRONT;
-}
-
-void pushAll() {
-  float y0[4];
-  for (int l = 0; l < 4; l++) y0[l] = legY[l];
-  for (int s = 1; s <= PUSH_SUB; s++) {
-    float t = (float)s / PUSH_SUB;
-    for (int l = 0; l < 4; l++)
-      MoveLeg(legs[l], {X_OUT, y0[l] - PUSH * t, Z_DOWN});
-    delay(30);
-  }
-  for (int l = 0; l < 4; l++) legY[l] -= PUSH;
 }
 
 void setup() {
@@ -144,10 +116,28 @@ void setup() {
 }
 
 void loop() {
-  swingLeg(0);   // reaches 
-  pushAll();     // advances
-  swingLeg(2);   // rebalances
-  swingLeg(1);   // reaches
-  pushAll();     // advances
-  swingLeg(3);   // rebalances
+  for (int p = 0; p < 4; p++) {
+    int swing = ORDER[p];
+
+    for (int s = 1; s <= SUBSTEPS; s++) {
+      float t = (float)s / SUBSTEPS;
+
+      for (int l = 0; l < 4; l++) {
+        Point tgt;
+        tgt.x = X_OUT;
+        if (l == swing) {
+          tgt.y = Y_BACK + (Y_FRONT - Y_BACK) * t;
+          tgt.z = Z_DOWN + LIFT * sinf(PI * t);
+        } else {
+          tgt.y = legY[l] - STEP_BACK * t;
+          tgt.z = Z_DOWN;
+        }
+        MoveLeg(legs[l], tgt);
+      }
+      delay(40);
+    }
+
+    for (int l = 0; l < 4; l++)
+      legY[l] = (l == swing) ? Y_FRONT : legY[l] - STEP_BACK;
+  }
 }

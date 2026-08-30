@@ -11,7 +11,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 const float X_OUT     = 58.0f;
 const float Y_FRONT   = 120.0f;
 const float Y_BACK    = 43.0f;
-const float Z_DOWN    = -58.0f;
+const float Z_DOWN    = -68.0f;
 const float LIFT      = 21.0f;
 const float STEP_BACK = (Y_FRONT - Y_BACK) / 3.0f;
 
@@ -68,18 +68,22 @@ void neutral(){
   setServoAngle(FLFoot, 0);
   setServoAngle(FLKnee, 180);
   setServoAngle(FLHip, 0);
+  delay(500);
 
   setServoAngle(FRFoot, 180);
   setServoAngle(FRKnee, 0);
   setServoAngle(FRHip, 180);
+  delay(500);
 
   setServoAngle(BRFoot, 0);
   setServoAngle(BRKnee, 180);
   setServoAngle(BRHip, 0);
+  delay(500);
 
   setServoAngle(BLFoot, 180);
   setServoAngle(BLKnee, 0);
   setServoAngle(BLHip, 180);
+  delay(500);
 }
 
 bool MoveLeg(Leg& leg, const Point& bodyTarget) {
@@ -129,7 +133,9 @@ static void RunPhase(int swing){
       MoveLeg(legs[l], GaitTarget(l, swing, t));
     }
     ControllerUpdate();
-    delay(25); //change
+    delay(20); //change i think 25 is the limit maybe 20 idk
+    // at 25 its 900 ms per phase at  40 it was 1.4s, could push to 20 maybe 720 ms
+    //also drifts to the left doubt its logic prolly just unequal shitty chinese motors
   }
   for (int l = 0; l < 4; l++){
     legY[l] = (l == swing) ? Y_FRONT : legY[l] - STEP_BACK;
@@ -142,6 +148,8 @@ void setup() {
   pwm.setPWMFreq(50);
   delay(10);
   ControllerBegin();
+  //neutral();
+  delay(1000);
   initGait();
 }
 
